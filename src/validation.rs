@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 
 pub fn validate_parameter_colors(param: &str) -> anyhow::Result<u8> {
     let msg = "The 'colors' parameter must be an integer between 1 and 32";

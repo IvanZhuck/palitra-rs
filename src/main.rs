@@ -1,16 +1,6 @@
 use anyhow::{Context, Result, bail, ensure};
 use clap::{Parser, ValueEnum};
-
-fn validate_parameter_colors(param: &str) -> Result<u8> {
-    let msg = "The 'colors' parameter must be an integer between 1 and 32";
-    let val: u8 = param.parse().context(msg)?;
-
-    if !(1..=32).contains(&val) {
-        bail!(msg);
-    }
-
-    Ok(val)
-}
+use palitra_rs::validation::validate_parameter_colors;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
 enum Format {

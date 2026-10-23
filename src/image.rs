@@ -9,10 +9,10 @@ const EXPECTED_SAMPLES_COUNT: u32 = 8000;
 
 #[derive(Debug)]
 pub struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
-    weight: u32,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub weight: u32,
 }
 
 struct ColorSum {
@@ -30,7 +30,7 @@ pub fn extract_colors_from_image(img_file_path: &String) -> Result<Vec<Color>> {
     let resized_image = image.resize(
         RESIZED_IMG_MAX_WIDTH,
         RESIZED_IMG_MAX_HEIGHT,
-        FilterType::Lanczos3,
+        FilterType::Nearest,
     );
 
     let resized_width = resized_image.width();
@@ -109,10 +109,10 @@ mod tests {
     #[test]
     fn test_extract_colors_from_image() {
         let file_path = String::from("test_image.jpg");
-        assert_eq!(extract_colors_from_image(&file_path).unwrap().len(), 741);
+        assert_eq!(extract_colors_from_image(&file_path).unwrap().len(), 947);
         assert_eq!(
             extract_colors_from_image(&file_path).unwrap()[0].weight,
-            144
+            127
         );
 
         let file_path = String::from("test_image.png");

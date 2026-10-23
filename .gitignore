@@ -1,0 +1,7 @@
+# System
+.DS_Store
+.idea
+.vscode
+
+# Application
+/target

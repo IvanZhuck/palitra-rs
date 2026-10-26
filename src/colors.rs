@@ -57,7 +57,7 @@ pub fn extract_colors_from_image(img_file_path: &String) -> Result<Vec<Color>> {
     Ok(aggregate_colors(&color_sums))
 }
 
-/// Creates a color palette from a set of colors.
+/// Creates a color palette from a set of colors using k-means clustering.
 pub fn build_colors_palette(colors: &Vec<Color>, size: u8) -> Result<Vec<Color>> {
     if colors.len() <= size as usize {
         return Ok(colors.to_vec());
@@ -143,7 +143,7 @@ pub fn save_palette_as_file(palette: &Vec<Color>, output_path: &String, square_s
     Ok(())
 }
 
-/// Selects initial cluster centers using k-means++.
+/// Picks initial cluster centers using greedy weighted selection.
 fn get_color_centers(colors: &Vec<Color>, size: u8) -> Vec<Color> {
     let mut centers: Vec<Color> = vec![colors[0].clone()];
 

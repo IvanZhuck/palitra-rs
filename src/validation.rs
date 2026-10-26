@@ -1,10 +1,10 @@
 use anyhow::{Context, bail};
 
 pub fn validate_parameter_colors(param: &str) -> anyhow::Result<u8> {
-    let msg = "The 'colors' parameter must be an integer between 1 and 32";
+    let msg = "The 'colors' parameter must be an integer between 1 and 64";
     let val: u8 = param.parse().context(msg)?;
 
-    if !(1..=32).contains(&val) {
+    if !(1..=64).contains(&val) {
         bail!(msg);
     }
 
@@ -22,7 +22,7 @@ mod tests {
         assert_eq!(validate_parameter_colors("32").unwrap(), 32);
 
         assert!(validate_parameter_colors("0").is_err());
-        assert!(validate_parameter_colors("33").is_err());
+        assert!(validate_parameter_colors("65").is_err());
         assert!(validate_parameter_colors("abc").is_err());
     }
 }

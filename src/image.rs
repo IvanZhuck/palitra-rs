@@ -15,11 +15,21 @@ pub struct Color {
     pub weight: u32,
 }
 
+#[derive(Default)]
 struct ColorSum {
     r: u32,
     g: u32,
     b: u32,
     count: u32,
+}
+
+impl ColorSum {
+    fn add(&mut self, pixel: &Rgba<u8>) {
+        self.r += pixel[0] as u32;
+        self.g += pixel[1] as u32;
+        self.b += pixel[2] as u32;
+        self.count += 1;
+    }
 }
 
 /// Extracts colors from an image file
@@ -42,37 +52,24 @@ fn collect_color_sums(image: &DynamicImage) -> HashMap<u16, ColorSum> {
     let width = image.width();
     let height = image.height();
 
-    let sample_step_px = 1.max(
-        ((width * height / EXPECTED_SAMPLES_COUNT) as f64)
-            .sqrt()
-            .ceil() as usize,
-    );
+    let sample_step_px = ((width * height / EXPECTED_SAMPLES_COUNT) as f64)
+        .sqrt()
+        .ceil()
+        .max(1.0) as usize;
+
+    let rgba = image.to_rgba8();
 
     for y in (0..height).step_by(sample_step_px) {
         for x in (0..width).step_by(sample_step_px) {
-            let pixel = image.get_pixel(x, y);
+            let pixel = rgba.get_pixel(x, y);
 
             // Ignore transparent pixels
             if pixel[3] == 0 {
                 continue;
             }
 
-            let index = index_from_pixel(&pixel);
-
-            color_sums
-                .entry(index)
-                .and_modify(|color_sum| {
-                    color_sum.r += pixel[0] as u32;
-                    color_sum.g += pixel[1] as u32;
-                    color_sum.b += pixel[2] as u32;
-                    color_sum.count += 1;
-                })
-                .or_insert(ColorSum {
-                    r: pixel[0] as u32,
-                    g: pixel[1] as u32,
-                    b: pixel[2] as u32,
-                    count: 1,
-                });
+            let index = index_from_pixel(pixel);
+            color_sums.entry(index).or_default().add(pixel);
         }
     }
 
@@ -81,10 +78,12 @@ fn collect_color_sums(image: &DynamicImage) -> HashMap<u16, ColorSum> {
 
 /// Creates a flat 15-bit index for the given pixel
 fn index_from_pixel(pixel: &Rgba<u8>) -> u16 {
+    let [r, g, b, _] = pixel.0;
+
     // Drop the lowest 3 bits of each color channel
-    let simplified_r = (pixel[0] >> 3) as u16;
-    let simplified_g = (pixel[1] >> 3) as u16;
-    let simplified_b = (pixel[2] >> 3) as u16;
+    let simplified_r = (r >> 3) as u16;
+    let simplified_g = (g >> 3) as u16;
+    let simplified_b = (b >> 3) as u16;
 
     (simplified_r << 10) | (simplified_g << 5) | simplified_b
 }
@@ -98,12 +97,11 @@ fn aggregate_colors(color_sums: &HashMap<u16, ColorSum>) -> Vec<Color> {
             r: (color_sum.r / color_sum.count) as u8,
             g: (color_sum.g / color_sum.count) as u8,
             b: (color_sum.b / color_sum.count) as u8,
-            weight: color_sum.count,
+            weight: 1.max(color_sum.count),
         });
     }
 
-    colors.sort_by_key(|color| color.weight);
-    colors.reverse();
+    colors.sort_by_key(|color| std::cmp::Reverse(color.weight));
 
     colors
 }

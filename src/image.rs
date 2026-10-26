@@ -1,6 +1,6 @@
 use anyhow::Result;
 use image::imageops::FilterType;
-use image::{GenericImageView, Rgba};
+use image::{DynamicImage, GenericImageView, Rgba};
 use std::collections::HashMap;
 
 const RESIZED_IMG_MAX_WIDTH: u32 = 200;
@@ -24,8 +24,6 @@ struct ColorSum {
 
 /// Extracts colors from an image file
 pub fn extract_colors_from_image(img_file_path: &String) -> Result<Vec<Color>> {
-    let mut color_sums: HashMap<u16, ColorSum> = HashMap::new();
-
     let image = image::open(img_file_path)?;
     let resized_image = image.resize(
         RESIZED_IMG_MAX_WIDTH,
@@ -33,18 +31,26 @@ pub fn extract_colors_from_image(img_file_path: &String) -> Result<Vec<Color>> {
         FilterType::Nearest,
     );
 
-    let resized_width = resized_image.width();
-    let resized_height = resized_image.height();
+    let color_sums: HashMap<u16, ColorSum> = collect_color_sums(&resized_image);
+    Ok(aggregate_colors(&color_sums))
+}
+
+/// Samples pixels from the image and aggregates them into quantized color sums
+fn collect_color_sums(image: &DynamicImage) -> HashMap<u16, ColorSum> {
+    let mut color_sums: HashMap<u16, ColorSum> = HashMap::new();
+
+    let width = image.width();
+    let height = image.height();
 
     let sample_step_px = 1.max(
-        ((resized_width * resized_height / EXPECTED_SAMPLES_COUNT) as f64)
+        ((width * height / EXPECTED_SAMPLES_COUNT) as f64)
             .sqrt()
             .ceil() as usize,
     );
 
-    for y in (0..resized_height).step_by(sample_step_px) {
-        for x in (0..resized_width).step_by(sample_step_px) {
-            let pixel = resized_image.get_pixel(x, y);
+    for y in (0..height).step_by(sample_step_px) {
+        for x in (0..width).step_by(sample_step_px) {
+            let pixel = image.get_pixel(x, y);
 
             // Ignore transparent pixels
             if pixel[3] == 0 {
@@ -70,7 +76,7 @@ pub fn extract_colors_from_image(img_file_path: &String) -> Result<Vec<Color>> {
         }
     }
 
-    Ok(aggregate_colors(&color_sums))
+    color_sums
 }
 
 /// Creates a flat 15-bit index for the given pixel
@@ -129,6 +135,19 @@ mod tests {
 
         let pixel = Rgba::from([255, 255, 255, 0]);
         assert_eq!(index_from_pixel(&pixel), 32767);
+    }
+
+    #[test]
+    fn test_collect_color_sums() {
+        let image = image::open("test_image.jpg").unwrap();
+        let resized_image = image.resize(
+            RESIZED_IMG_MAX_WIDTH,
+            RESIZED_IMG_MAX_HEIGHT,
+            FilterType::Nearest,
+        );
+
+        let color_sums: HashMap<u16, ColorSum> = collect_color_sums(&resized_image);
+        assert_eq!(color_sums.len(), 947);
     }
 
     #[test]

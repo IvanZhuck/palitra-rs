@@ -355,14 +355,14 @@ mod tests {
 
     #[test]
     fn test_extract_colors_from_image() {
-        let file_path = String::from("test_image.jpg");
+        let file_path = String::from("meta/images/image-1.jpg");
         assert_eq!(extract_colors_from_image(&file_path).unwrap().len(), 947);
         assert_eq!(
             extract_colors_from_image(&file_path).unwrap()[0].weight,
             127
         );
 
-        let file_path = String::from("test_image.png");
+        let file_path = String::from("meta/images/image-err.png");
         assert!(extract_colors_from_image(&file_path).is_err());
     }
 
@@ -498,7 +498,7 @@ mod tests {
 
     #[test]
     fn test_collect_color_sums() {
-        let image = image::open("test_image.jpg").unwrap();
+        let image = image::open("meta/images/image-1.jpg").unwrap();
         let resized_image = image.resize(
             RESIZED_IMG_MAX_WIDTH,
             RESIZED_IMG_MAX_HEIGHT,

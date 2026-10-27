@@ -3,10 +3,19 @@ use image::imageops::FilterType;
 use image::{DynamicImage, Rgb, RgbImage, Rgba};
 use std::cmp::PartialEq;
 use std::collections::HashMap;
+use clap::ValueEnum;
 
 const RESIZED_IMG_MAX_WIDTH: u32 = 200;
 const RESIZED_IMG_MAX_HEIGHT: u32 = 200;
 const EXPECTED_SAMPLES_COUNT: u32 = 8000;
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum ColorFormat {
+    Hex,
+    RGB,
+    HSL,
+    Lab
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Color {
@@ -17,14 +26,104 @@ pub struct Color {
 }
 
 impl Color {
-    /// Formats the color as a HEX string (e.g. #FFFFFF).
+    /// Formats the color as a HEX string (e.g. #CBB695).
     pub fn to_hex_string(&self) -> String {
         format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
     }
 
-    /// Formats the color as an RGB string (e.g. rgb(255, 255, 255)).
+    /// Formats the color as an RGB string (e.g. rgb(223 215 199)).
     pub fn to_rgb_string(&self) -> String {
-        format!("rgb({}, {}, {})", self.r, self.g, self.b)
+        format!("rgb({} {} {})", self.r, self.g, self.b)
+    }
+
+    /// Formats the color as an HSL string (e.g. hsl(47 21% 48%)).
+    pub fn to_hsl_string(&self) -> String {
+        let r: f32 = self.r as f32 / 255_f32;
+        let g: f32 = self.g as f32 / 255_f32;
+        let b: f32 = self.b as f32 / 255_f32;
+
+        let c_max = r.max(g.max(b));
+        let c_min = r.min(g.min(b));
+
+        let delta = c_max - c_min;
+        let l = (c_max + c_min) / 2_f32;
+        let mut s = 0_f32;
+        let mut h = 0_f32;
+
+        if delta > 0_f32 {
+            s = delta / (1_f32 - (2_f32 * l - 1_f32).abs());
+            h = match () {
+                _ if c_max == r => 60.0 * (((g - b) / delta) % 6.0),
+                _ if c_max == g => 60.0 * (((b - r) / delta) + 2.0),
+                _ => 60.0 * (((r - g) / delta) + 4.0),
+            };
+
+            if h < 0.0 {
+                h += 360.0;
+            }
+        }
+
+        format!("hsl({:.0} {:.0}% {:.0}%)", h, s * 100_f32, l * 100_f32)
+    }
+
+    /// Formats the color as a CIELAB string (e.g. lab(53.2% 80.1 67.2)).
+    pub fn to_lab_string(&self) -> String {
+        fn pivot_rgb(n: f64) -> f64 {
+            if n > 0.04045 {
+                ((n + 0.055) / 1.055).powf(2.4)
+            } else {
+                n / 12.92
+            }
+        }
+
+        let r = pivot_rgb(self.r as f64 / 255.0);
+        let g = pivot_rgb(self.g as f64 / 255.0);
+        let b = pivot_rgb(self.b as f64 / 255.0);
+
+        let x = r * 0.41239079926595934 + g * 0.357584339383878 + b * 0.1804807884018343;
+        let y = r * 0.21263900587151027 + g * 0.715168678767756 + b * 0.07219231536073371;
+        let z = r * 0.01933081871559182 + g * 0.11919477979462598 + b * 0.9505321522496607;
+
+        let x_norm = x / 0.9504559270516717;
+        let y_norm = y / 1.0;
+        let z_norm = z / 1.0890577507598784;
+
+        fn f(t: f64) -> f64 {
+            const EPSILON: f64 = 216.0 / 24389.0;
+            const KAPPA: f64 = 24389.0 / 27.0;
+            if t > EPSILON {
+                t.cbrt()
+            } else {
+                (KAPPA * t + 16.0) / 116.0
+            }
+        }
+
+        let fx = f(x_norm);
+        let fy = f(y_norm);
+        let fz = f(z_norm);
+
+        let l = (116.0 * fy - 16.0).clamp(0.0, 100.0);
+        let a = 500.0 * (fx - fy);
+        let b_val = 200.0 * (fy - fz);
+
+        format!("lab({:.1}% {:.1} {:.1})", l, a, b_val)
+    }
+
+    pub fn get_formatted_code(&self, color_format: &ColorFormat) -> String {
+        match color_format {
+            ColorFormat::Hex => {
+                self.to_hex_string()
+            }
+            ColorFormat::RGB => {
+                self.to_rgb_string()
+            }
+            ColorFormat::HSL => {
+                self.to_hsl_string()
+            }
+            ColorFormat::Lab => {
+                self.to_lab_string()
+            }
+        }
     }
 }
 
@@ -266,7 +365,9 @@ mod tests {
             weight: 1,
         };
         assert_eq!(color.to_hex_string(), "#0A0FFF");
-        assert_eq!(color.to_rgb_string(), "rgb(10, 15, 255)");
+        assert_eq!(color.to_rgb_string(), "rgb(10 15 255)");
+        assert_eq!(color.to_hsl_string(), "hsl(239 100% 52%)");
+        assert_eq!(color.to_lab_string(), "lab(33.2% 76.9 -106.4)");
 
         let black = Color {
             r: 0,
@@ -275,7 +376,20 @@ mod tests {
             weight: 1,
         };
         assert_eq!(black.to_hex_string(), "#000000");
-        assert_eq!(black.to_rgb_string(), "rgb(0, 0, 0)");
+        assert_eq!(black.to_rgb_string(), "rgb(0 0 0)");
+        assert_eq!(black.to_hsl_string(), "hsl(0 0% 0%)");
+        assert_eq!(black.to_lab_string(), "lab(0.0% 0.0 0.0)");
+
+        let white = Color {
+            r: 255,
+            g: 255,
+            b: 255,
+            weight: 1,
+        };
+        assert_eq!(white.to_hex_string(), "#FFFFFF");
+        assert_eq!(white.to_rgb_string(), "rgb(255 255 255)");
+        assert_eq!(white.to_hsl_string(), "hsl(0 0% 100%)");
+        assert_eq!(white.to_lab_string(), "lab(100.0% 0.0 0.0)");
     }
 
     #[test]

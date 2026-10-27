@@ -1,6 +1,6 @@
 use anyhow::Result;
 use image::imageops::FilterType;
-use image::{DynamicImage, Rgb, RgbImage, Rgba};
+use image::{DynamicImage, Rgba};
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 use clap::ValueEnum;
@@ -228,37 +228,6 @@ pub fn build_colors_palette(colors: &Vec<Color>, size: u8) -> Result<Vec<Color>>
     centers.sort_by_key(|center| std::cmp::Reverse(center.weight));
 
     Ok(centers)
-}
-
-/// Saves the color palette preview as an image file.
-pub fn save_palette_as_file(
-    palette: &Vec<Color>,
-    output_path: &String,
-    square_size: u32,
-) -> Result<()> {
-    if palette.is_empty() {
-        return Ok(());
-    }
-
-    let width = square_size * palette.len() as u32;
-    let height = square_size;
-
-    let mut img = RgbImage::new(width, height);
-
-    for (i, color) in palette.iter().enumerate() {
-        let x_offset = i as u32 * square_size;
-        let pixel = Rgb([color.r, color.g, color.b]);
-
-        for y in 0..square_size {
-            for x in 0..square_size {
-                img.put_pixel(x_offset + x, y, pixel);
-            }
-        }
-    }
-
-    img.save(output_path)?;
-
-    Ok(())
 }
 
 /// Picks initial cluster centers using greedy weighted selection.

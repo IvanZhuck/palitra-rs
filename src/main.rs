@@ -1,9 +1,10 @@
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
 use comfy_table::presets::UTF8_FULL;
-use palitra_rs::colors::{build_colors_palette, extract_colors_from_image, save_palette_as_file, ColorFormat};
+use palitra_rs::colors::{build_colors_palette, extract_colors_from_image, ColorFormat, Color};
 use palitra_rs::validation::validate_parameter_colors;
 use comfy_table::Table;
+use image::{Rgb, RgbImage};
 
 #[derive(Debug, Clone, ValueEnum)]
 enum OutputFormat {
@@ -35,6 +36,37 @@ struct Args {
 
     /// Path to the image file
     input_file: String,
+}
+
+/// Saves the color palette preview as an image file.
+pub fn save_palette_as_file(
+    palette: &Vec<Color>,
+    output_path: &String,
+    square_size: u32,
+) -> Result<()> {
+    if palette.is_empty() {
+        return Ok(());
+    }
+
+    let width = square_size * palette.len() as u32;
+    let height = square_size;
+
+    let mut img = RgbImage::new(width, height);
+
+    for (i, color) in palette.iter().enumerate() {
+        let x_offset = i as u32 * square_size;
+        let pixel = Rgb([color.r, color.g, color.b]);
+
+        for y in 0..square_size {
+            for x in 0..square_size {
+                img.put_pixel(x_offset + x, y, pixel);
+            }
+        }
+    }
+
+    img.save(output_path)?;
+
+    Ok(())
 }
 
 fn main() -> Result<()> {

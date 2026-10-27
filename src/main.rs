@@ -10,6 +10,7 @@ use palitra_rs::validation::{validate_parameter_colors, validate_swatch_size};
 enum OutputFormat {
     Table,
     List,
+    Line,
     JsonObject,
     JsonArray,
 }
@@ -78,6 +79,14 @@ fn main() -> Result<()> {
             for color in palette {
                 println!("{}", color.get_formatted_code(&args.color_format))
             }
+        }
+        OutputFormat::Line => {
+            let items: Vec<String> = palette
+                .iter()
+                .map(|color| format!("{}", color.get_formatted_code(&args.color_format)))
+                .collect();
+
+            println!("{}", items.join(" "));
         }
         OutputFormat::JsonArray => {
             let items: Vec<String> = palette

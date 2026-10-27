@@ -1,13 +1,14 @@
 use anyhow::Result;
 use image::imageops::FilterType;
 use image::{DynamicImage, Rgb, RgbImage, Rgba};
+use std::cmp::PartialEq;
 use std::collections::HashMap;
 
 const RESIZED_IMG_MAX_WIDTH: u32 = 200;
 const RESIZED_IMG_MAX_HEIGHT: u32 = 200;
 const EXPECTED_SAMPLES_COUNT: u32 = 8000;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -65,7 +66,8 @@ pub fn build_colors_palette(colors: &Vec<Color>, size: u8) -> Result<Vec<Color>>
 
     let mut centers = get_color_centers(colors, size);
 
-    for _ in 0..8 {
+    for _ in 0..128 {
+        let mut has_changes = false;
         let mut clusters: Vec<Vec<&Color>> = vec![Vec::new(); centers.len()];
 
         for color in colors {
@@ -104,10 +106,23 @@ pub fn build_colors_palette(colors: &Vec<Color>, size: u8) -> Result<Vec<Color>>
                 sum_w += color.weight as u64;
             }
 
-            center.r = (sum_r / sum_w) as u8;
-            center.g = (sum_g / sum_w) as u8;
-            center.b = (sum_b / sum_w) as u8;
-            center.weight = sum_w.min(u32::MAX as u64) as u32;
+            let new_center = Color {
+                r: (sum_r / sum_w) as u8,
+                g: (sum_g / sum_w) as u8,
+                b: (sum_b / sum_w) as u8,
+                weight: sum_w.min(u32::MAX as u64) as u32,
+            };
+
+            if *center == new_center {
+                continue;
+            }
+
+            has_changes = true;
+            *center = new_center;
+        }
+
+        if !has_changes {
+            break;
         }
     }
 
@@ -117,7 +132,11 @@ pub fn build_colors_palette(colors: &Vec<Color>, size: u8) -> Result<Vec<Color>>
 }
 
 /// Saves the color palette preview as an image file.
-pub fn save_palette_as_file(palette: &Vec<Color>, output_path: &String, square_size: u32) -> Result<()> {
+pub fn save_palette_as_file(
+    palette: &Vec<Color>,
+    output_path: &String,
+    square_size: u32,
+) -> Result<()> {
     if palette.is_empty() {
         return Ok(());
     }
@@ -240,11 +259,21 @@ mod tests {
 
     #[test]
     fn test_color_formatting() {
-        let color = Color { r: 10, g: 15, b: 255, weight: 1 };
+        let color = Color {
+            r: 10,
+            g: 15,
+            b: 255,
+            weight: 1,
+        };
         assert_eq!(color.to_hex_string(), "#0A0FFF");
         assert_eq!(color.to_rgb_string(), "rgb(10, 15, 255)");
 
-        let black = Color { r: 0, g: 0, b: 0, weight: 1 };
+        let black = Color {
+            r: 0,
+            g: 0,
+            b: 0,
+            weight: 1,
+        };
         assert_eq!(black.to_hex_string(), "#000000");
         assert_eq!(black.to_rgb_string(), "rgb(0, 0, 0)");
     }
@@ -265,8 +294,18 @@ mod tests {
     #[test]
     fn test_build_colors_palette() {
         let colors = vec![
-            Color { r: 255, g: 0, b: 0, weight: 100 },
-            Color { r: 0, g: 255, b: 0, weight: 50 },
+            Color {
+                r: 255,
+                g: 0,
+                b: 0,
+                weight: 100,
+            },
+            Color {
+                r: 0,
+                g: 255,
+                b: 0,
+                weight: 50,
+            },
         ];
 
         let palette = build_colors_palette(&colors, 5).unwrap();
@@ -279,9 +318,24 @@ mod tests {
     #[test]
     fn test_get_color_centers() {
         let colors = vec![
-            Color { r: 0, g: 0, b: 0, weight: 25 },
-            Color { r: 255, g: 255, b: 255, weight: 15 },
-            Color { r: 255, g: 0, b: 0, weight: 10 },
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                weight: 25,
+            },
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                weight: 15,
+            },
+            Color {
+                r: 255,
+                g: 0,
+                b: 0,
+                weight: 10,
+            },
         ];
 
         let centers = get_color_centers(&colors, 2);

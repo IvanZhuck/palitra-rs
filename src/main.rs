@@ -1,4 +1,4 @@
-use anyhow::{Result};
+use anyhow::Result;
 use clap::{Parser, ValueEnum};
 use palitra_rs::colors::{build_colors_palette, extract_colors_from_image, save_palette_as_file};
 use palitra_rs::validation::validate_parameter_colors;
@@ -46,12 +46,12 @@ fn main() -> Result<()> {
                 for color in &palette {
                     println!("{}", color.to_hex_string());
                 }
-            },
+            }
             Format::Rgb => {
                 for color in &palette {
                     println!("{}", color.to_rgb_string());
                 }
-            },
+            }
             Format::JsonArray => {
                 let items: Vec<String> = palette
                     .iter()
@@ -59,7 +59,7 @@ fn main() -> Result<()> {
                     .collect();
 
                 println!("[\n{}\n]", items.join(",\n"));
-            },
+            }
             Format::JsonObject => {
                 let items: Vec<String> = palette
                     .iter()
@@ -68,8 +68,8 @@ fn main() -> Result<()> {
                     .collect();
 
                 println!("{{\n{}\n}}", items.join(",\n"));
-            },
-            Format::CssVariables => {},
+            }
+            Format::CssVariables => {}
         }
     };
 

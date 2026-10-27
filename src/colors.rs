@@ -1,9 +1,9 @@
 use anyhow::Result;
+use clap::ValueEnum;
 use image::imageops::FilterType;
 use image::{DynamicImage, Rgba};
 use std::cmp::PartialEq;
 use std::collections::HashMap;
-use clap::ValueEnum;
 
 const RESIZED_IMG_MAX_WIDTH: u32 = 200;
 const RESIZED_IMG_MAX_HEIGHT: u32 = 200;
@@ -14,7 +14,7 @@ pub enum ColorFormat {
     Hex,
     RGB,
     HSL,
-    Lab
+    Lab,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,18 +111,10 @@ impl Color {
 
     pub fn get_formatted_code(&self, color_format: &ColorFormat) -> String {
         match color_format {
-            ColorFormat::Hex => {
-                self.to_hex_string()
-            }
-            ColorFormat::RGB => {
-                self.to_rgb_string()
-            }
-            ColorFormat::HSL => {
-                self.to_hsl_string()
-            }
-            ColorFormat::Lab => {
-                self.to_lab_string()
-            }
+            ColorFormat::Hex => self.to_hex_string(),
+            ColorFormat::RGB => self.to_rgb_string(),
+            ColorFormat::HSL => self.to_hsl_string(),
+            ColorFormat::Lab => self.to_lab_string(),
         }
     }
 }

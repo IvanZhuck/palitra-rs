@@ -1,10 +1,10 @@
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
-use comfy_table::presets::UTF8_FULL;
-use palitra_rs::colors::{build_colors_palette, extract_colors_from_image, ColorFormat, Color};
-use palitra_rs::validation::validate_parameter_colors;
 use comfy_table::Table;
-use image::{Rgb, RgbImage};
+use comfy_table::presets::UTF8_FULL;
+use palitra_rs::colors::{ColorFormat, build_colors_palette, extract_colors_from_image};
+use palitra_rs::output_to_file::save_palette_as_file;
+use palitra_rs::validation::{validate_parameter_colors, validate_swatch_size};
 
 #[derive(Debug, Clone, ValueEnum)]
 enum OutputFormat {
@@ -12,7 +12,6 @@ enum OutputFormat {
     List,
     JsonObject,
     JsonArray,
-    CssVariables,
 }
 
 /// Generate a color palette from an image
@@ -30,43 +29,16 @@ struct Args {
     #[arg(short = 'o', long, visible_alias = "of", default_value_t=OutputFormat::Table, value_enum)]
     output_format: OutputFormat,
 
-    /// Path to the output image files
+    /// Path to the output image file (supported formats: jpeg, png, gif, webp, bmp)
     #[arg(short = 'i', long, visible_alias = "oif")]
     output_image_file: Option<String>,
 
-    /// Path to the image file
+    /// Palette swatch size in pixels for the output image
+    #[arg(short = 's', long, default_value_t = 50, value_parser = validate_swatch_size)]
+    swatch_size: u32,
+
+    /// Path to the input image (supported formats: jpeg, png, gif, webp, avif, bmp, tiff, ico)
     input_file: String,
-}
-
-/// Saves the color palette preview as an image file.
-pub fn save_palette_as_file(
-    palette: &Vec<Color>,
-    output_path: &String,
-    square_size: u32,
-) -> Result<()> {
-    if palette.is_empty() {
-        return Ok(());
-    }
-
-    let width = square_size * palette.len() as u32;
-    let height = square_size;
-
-    let mut img = RgbImage::new(width, height);
-
-    for (i, color) in palette.iter().enumerate() {
-        let x_offset = i as u32 * square_size;
-        let pixel = Rgb([color.r, color.g, color.b]);
-
-        for y in 0..square_size {
-            for x in 0..square_size {
-                img.put_pixel(x_offset + x, y, pixel);
-            }
-        }
-    }
-
-    img.save(output_path)?;
-
-    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -75,14 +47,15 @@ fn main() -> Result<()> {
     let palette = build_colors_palette(&colors, args.colors)?;
 
     if let Some(output_file_path) = args.output_image_file {
-        save_palette_as_file(&palette, &output_file_path, 50)?;
+        save_palette_as_file(&palette, &output_file_path, args.swatch_size)?;
     }
 
     match args.output_format {
         OutputFormat::Table => {
             let mut total_weight = 0;
             let mut table = Table::new();
-            table.load_style(UTF8_FULL.with_rounded_corners())
+            table
+                .load_style(UTF8_FULL.with_rounded_corners())
                 .set_header(vec!["Hex", "RGB", "HSL", "CIELab", "Weight"]);
 
             for color in &palette {
@@ -95,7 +68,7 @@ fn main() -> Result<()> {
                     color.get_formatted_code(&ColorFormat::RGB),
                     color.get_formatted_code(&ColorFormat::HSL),
                     color.get_formatted_code(&ColorFormat::Lab),
-                    format!("{:.2}%", color.weight as f32 / (total_weight as f32 * 0.01))
+                    format!("{:.2}%", color.weight as f32 / (total_weight as f32 * 0.01)),
                 ]);
             }
 
@@ -118,12 +91,17 @@ fn main() -> Result<()> {
             let items: Vec<String> = palette
                 .iter()
                 .enumerate()
-                .map(|(i, color)| format!("  \"color_{}\": \"{}\"", i, color.get_formatted_code(&args.color_format)))
+                .map(|(i, color)| {
+                    format!(
+                        "  \"color_{}\": \"{}\"",
+                        i,
+                        color.get_formatted_code(&args.color_format)
+                    )
+                })
                 .collect();
 
             println!("{{\n{}\n}}", items.join(",\n"));
         }
-        OutputFormat::CssVariables => {},
     }
 
     Ok(())

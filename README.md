@@ -63,7 +63,7 @@ Here are a few more example images:
 
 ![Example-4: Palette of 16 colors](meta/images/image-11-palette.jpg)
 
-## Building from source code
+## Building from source
 
 Ensure you have [Rust and Cargo](https://rustup.rs/) installed, then run:
 
@@ -83,11 +83,9 @@ Ensure the file `palitra-rs` is executable and run:
 ./palitra-rs [OPTIONS] <INPUT_FILE>
 ```
 
-Where:
+Where `<INPUT_FILE>` is a path to the input image (supported formats: jpeg, png, gif, webp, avif, bmp, tiff, ico).
 
-`<INPUT_FILE>` — Path to the input image (supported formats: jpeg, png, gif, webp, avif, bmp, tiff, ico).
-
-Options:
+### Options
 
 - `-c`, `--colors` — Number of colors to generate. Between 1 and 64, default: 16.
 - `-o`, `--output-format` — Output format, possible values: table, list, line, json-object, json-array, default: table.
@@ -96,8 +94,87 @@ Options:
 - `-s`, `--swatch-size` — Palette swatch size in pixels for the output image. Between 10 and 512, default: 50.
 - `-h`, `--help` — Print help information.
 
-## How fast is it
+### Examples
+
+Extract 16 dominant colors and display them in a CLI table:
+
+```bash
+./palitra-rs photo.jpg
+```
+
+Generate an 8-color palette and save a preview with 80 px swatches:
+
+```bash
+./palitra-rs photo.jpg -c 8 -i palette.png -s 80
+```
+
+Extract colors in HSL format as a JSON array:
+```bash
+./palitra-rs photo.jpg -c 12 -f hsl -o json-array
+```
+
+Get raw HEX values separated by spaces:
+```bash
+./palitra-rs photo.jpg -o line
+```
+
+## Performance
+
+`palitra-rs` works really fast. Extracting a palette from a 4K full-color image and generating a preview takes around 50 ms. The table below shows average execution times measured with [hyperfine](https://github.com/sharkdp/hyperfine) across multiple runs on a large dataset of images:
+
+| Resolution          | Avg File Size | Avg Execution Time |
+|---------------------|--------------:|-------------------:|
+| ~160px (long side)  |      16.19 KB |            4.01 ms |
+| ~320px (long side)  |      32.97 KB |            4.69 ms |
+| ~640px (long side)  |      87.36 KB |            6.55 ms |
+| ~800px (long side)  |     124.43 KB |            7.53 ms |
+| ~1024px (long side) |     185.49 KB |            8.65 ms |
+| ~1280px (long side) |     268.94 KB |           10.98 ms |
+| ~1920px (long side) |     531.20 KB |           16.68 ms |
+| ~2048px (long side) |     591.06 KB |           17.83 ms |
+| ~2560px (long side) |     859.53 KB |           23.75 ms |
+| ~3840px (long side) |       1.65 MB |           44.96 ms |
+| ~4096px (long side) |       1.84 MB |           51.00 ms |
+| ~6000px (long side) |       4.06 MB |          102.05 ms |
+
 ## FAQ
 
+### How does the tool handle transparent images (PNG, WebP)?
+Fully transparent pixels are automatically ignored during color extraction, so transparent backgrounds won't pollute your palette with unwanted black or white colors.
 
+### Does `palitra-rs` produce deterministic results?
+Yes. Unlike standard k-means implementations with random initialization, `palitra-rs` uses a deterministic greedy selection heuristic. Running the tool multiple times on the same image will always produce the exact same palette.
 
+### Why do the CIELab (Lab) color values slightly differ from other color pickers?
+
+`palitra-rs` converts sRGB colors to CIELab in accordance with the official **W3C CSS Color 4** specification.
+
+Minor discrepancies with other tools usually happen because:
+- Some software (like Photoshop) uses a different color space (e.g. Adobe RGB) instead of sRGB.
+- Different implementations use slightly different rounding constants for matrix transformations.
+
+These minor variations are visually imperceptible and represent mathematically valid conversions for sRGB.
+
+### How can I pipe the extracted colors into other tools like jq?
+Use the JSON output format:
+```bash
+./palitra-rs image.jpg -o json-array | jq -r '.[0]'
+```
+
+### How can I process multiple JPG images from a directory with a single command?
+
+```bash
+for img in images/*.jpg; do ./palitra-rs "$img"; done
+```
+
+### How can I batch process images, generate previews, and save the results into a CSV file?
+
+```bash
+for img in images/*.jpg; do [[ "$img" == *-palette.jpg ]] && continue; p="${img%.*}-palette.jpg"; echo "$(basename "$img"),$(./palitra-rs -i "$p" --of line --cf hex "$img")"; done > output.csv
+```
+
+## License
+
+`palitra-rs` is free and open-source software licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+
+You are free to use, modify, and distribute this software, provided that any derivative works are also distributed under the same license.

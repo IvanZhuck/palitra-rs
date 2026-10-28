@@ -63,8 +63,39 @@ Here are a few more example images:
 
 ![Example-4: Palette of 16 colors](meta/images/image-11-palette.jpg)
 
-## How to build from source code
-## How to use
+## Building from source code
+
+Ensure you have [Rust and Cargo](https://rustup.rs/) installed, then run:
+
+```bash
+git clone https://github.com/IvanZhuck/palitra-rs
+cd palitra-rs
+cargo build --release
+```
+
+The compiled binary will be available at `target/release/palitra-rs`.
+
+## Usage
+
+Ensure the file `palitra-rs` is executable and run:
+
+```bash
+./palitra-rs [OPTIONS] <INPUT_FILE>
+```
+
+Where:
+
+`<INPUT_FILE>` — Path to the input image (supported formats: jpeg, png, gif, webp, avif, bmp, tiff, ico).
+
+Options:
+
+- `-c`, `--colors` — Number of colors to generate. Between 1 and 64, default: 16.
+- `-o`, `--output-format` — Output format, possible values: table, list, line, json-object, json-array, default: table.
+- `-f`, `--color-format` — Output color format, possible values: hex, rgb, hsl, lab, default: hex. Not applicable when output format is table (the table displays all formats at the same time).
+- `-i`, `--output-image-file` — Path to the output image file (supported formats: jpeg, png, gif, webp, bmp).
+- `-s`, `--swatch-size` — Palette swatch size in pixels for the output image. Between 10 and 512, default: 50.
+- `-h`, `--help` — Print help information.
+
 ## How fast is it
 ## FAQ
 

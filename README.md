@@ -63,6 +63,16 @@ Here are a few more example images:
 
 ![Example-4: Palette of 16 colors](meta/images/image-11-palette.jpg)
 
+## Installation
+
+`palitra-rs` is distributed as a standalone binary and does not require installation.
+
+Just visit the [Releases](https://github.com/IvanZhuck/palitra-rs/releases/) page, download the appropriate pre-built archive for your operating system, extract it, and run the executable from your terminal.
+
+![Release assets](meta/images/doc-release-assets.png)
+
+You can also build the program from source.
+
 ## Building from source
 
 Ensure you have [Rust and Cargo](https://rustup.rs/) installed, then run:

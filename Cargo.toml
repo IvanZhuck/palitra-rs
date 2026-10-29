@@ -1,6 +1,6 @@
 [package]
 name = "palitra-rs"
-license = "GPL-3.0-only"
+license = "MIT"
 version = "0.1.0"
 edition = "2024"
 

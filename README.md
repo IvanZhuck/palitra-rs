@@ -175,6 +175,4 @@ for img in images/*.jpg; do [[ "$img" == *-palette.jpg ]] && continue; p="${img%
 
 ## License
 
-`palitra-rs` is free and open-source software licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
-
-You are free to use, modify, and distribute this software, provided that any derivative works are also distributed under the same license.
+This project is licensed under the [MIT License](LICENSE).
